@@ -1,0 +1,32 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Text Filter</title>
+    <link rel = "stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h3>AI Text Filter Settings</h3>
+        
+        <div class="input-group">
+            <input type="text" id="wordInput" placeholder="Word to filter (e.g., your-name)">
+            <input type="text" id="replacementInput" placeholder="Replace with (optional - defaults to [REDACTED])">
+            <button id="addWord">Add Filter</button>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+        
+        <div>
+            <h3>Filtered Words:</h3>
+            <div id="wordList" class="word-list">
+                <div style="text-align: center; color: #666;">No words added yet</div>
+            </div>
+        </div>
+        
+        <button id="clearAll" style="background-color: #f44336;">Clear All Words</button>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>
