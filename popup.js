@@ -97,6 +97,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button class="delete-btn" onclick="deleteWord('${escapeHtml(word)}')">Delete</button>
             </div>
         `).join('');
+
+        const deleteButtons = wordList.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const wordToDelete = this.getAttribute('data-word');
+                deleteWord(wordToDelete);
+            });
+        });
     }
 
     function showStatus(message, type) {
@@ -115,15 +123,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    // Make deleteWord function global so it can be called from HTML
-    window.deleteWord = function(word) {
-        chrome.storage.local.get(['wordReplacements'], function(result) {
+    function deleteWord(word){
+        chrome.storage.local.get(['wordReplacements'], function(result){
             let wordReplacements = result.wordReplacements || {};
             delete wordReplacements[word];
-            chrome.storage.local.set({wordReplacements: wordReplacements}, function() {
+            chrome.storage.local.set({wordReplacements: wordReplacements}, function(){
                 loadWordList();
-                showStatus('Word deleted', 'success');
+                showStatus('Word deleted', 'success')
             });
         });
-    };
+    }
 });

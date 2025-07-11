@@ -148,10 +148,22 @@ class TextFilter {
                 this.filterContentEditableText(e.target);
             });
             
-            // For complex inputs, also listen for DOMSubtreeModified (deprecated but still works)
-            input.addEventListener('DOMSubtreeModified', (e) => {
-                this.filterContentEditableText(e.target);
-            });
+            // Only add MutationObserver for contenteditable elements
+            if (input.isContentEditable) {
+                const observer = new MutationObserver((mutations) => {
+                    // Debounce to avoid excessive calls
+                    clearTimeout(this.debounceTimer);
+                    this.debounceTimer = setTimeout(() => {
+                        this.filterContentEditableText(input);
+                    }, 100);
+                });
+        
+                observer.observe(input, {
+                    childList: true,
+                    subtree: true,
+                    characterData: true
+                });
+            }
         }
     }
 
@@ -160,39 +172,66 @@ class TextFilter {
             return;
         }
 
-        console.log('Filtering input text:', input.value);
-        let filteredText = input.value;
+        let originalText = input.value;
+        let filteredText = originalText;
         let hasChanges = false;
+        const cursorPosition = input.selectionStart;
+        let newCursorPosition = cursorPosition;
 
         // Go through each word-replacement pair
         Object.keys(this.wordReplacements).forEach(word => {
             if (word.trim()) {
-                // Create case-insensitive regex for whole word matching
-                const regex = new RegExp(`\\b${this.escapeRegExp(word)}\\b`, 'gi');
-                if (regex.test(filteredText)) {
-                    const replacement = this.wordReplacements[word];
-                    filteredText = filteredText.replace(regex, replacement);
+                const regex = new RegExp(`\\b${this.escapeRegExp(word)}(?=\\b|\\s|$)`, 'gi');
+                const replacement = this.wordReplacements[word] || '[REDACTED]';
+                
+                let match;
+                let offset = 0; // Track cumulative offset from replacements
+                
+                // Reset regex to start from beginning
+                regex.lastIndex = 0;
+                
+                while ((match = regex.exec(originalText)) !== null) {
+                    const matchStart = match.index + offset;
+                    const matchEnd = matchStart + word.length;
+                    
+                    // Adjust cursor position if it's affected by this replacement
+                    if (cursorPosition >= matchStart && cursorPosition <= matchEnd) {
+                        // Cursor is within or at the matched word, place it at the end of replacement
+                        newCursorPosition = matchStart + replacement.length;
+                    } else if (cursorPosition > matchEnd) {
+                        // Cursor is after the matched word, adjust by length difference
+                        newCursorPosition += (replacement.length - word.length);
+                    }
+                    
+                    // Perform the replacement
+                    filteredText = filteredText.substring(0, matchStart) + 
+                                  replacement + 
+                                  filteredText.substring(matchEnd);
+                    
+                    // Update offset for next iteration
+                    offset += (replacement.length - word.length);
                     hasChanges = true;
+                    
                     console.log(`Replaced "${word}" with "${replacement}"`);
+                    
+                    // Reset regex to continue searching from after current replacement
+                    regex.lastIndex = match.index + 1;
                 }
             }
         });
 
         if (hasChanges) {
-            // Preserve cursor position
-            const cursorPosition = input.selectionStart;
-            const lengthDiff = filteredText.length - input.value.length;
-            
             input.value = filteredText;
+            
+            // Ensure cursor position is within bounds
+            const finalCursorPosition = Math.min(Math.max(0, newCursorPosition), filteredText.length);
+            input.setSelectionRange(finalCursorPosition, finalCursorPosition);
             
             // Trigger input event to notify any listeners
             input.dispatchEvent(new Event('input', { bubbles: true }));
             
-            // Restore cursor position (adjusted for text length changes)
-            const newCursorPosition = Math.max(0, cursorPosition + lengthDiff);
-            input.setSelectionRange(newCursorPosition, newCursorPosition);
-            
             console.log('Text filtered in input:', filteredText);
+            console.log('Cursor moved to position:', finalCursorPosition);
         }
     }
 
@@ -210,8 +249,9 @@ class TextFilter {
         Object.keys(this.wordReplacements).forEach(word => {
             if (word.trim()) {
                 const regex = new RegExp(`\\b${this.escapeRegExp(word)}\\b`, 'gi');
+                const replacement = this.wordReplacements[word] || '[REDACTED]';
+
                 if (regex.test(filteredText)) {
-                    const replacement = this.wordReplacements[word];
                     filteredText = filteredText.replace(regex, replacement);
                     hasChanges = true;
                     console.log(`Replaced "${word}" with "${replacement}" in contenteditable`);
