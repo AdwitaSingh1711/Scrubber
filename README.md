@@ -1,10 +1,12 @@
 # Scrubber
 
-A browser extension that scrubs your inputs/prompts on ai websites like ChatGPT, Claude, etc.
+A browser extension that automatically detects and replaces sensitive words in input fields on AI-related websites such as GPT, Claude, etc to protect your privacy.
 
 ---
 
 ## Demo
+
+https://github.com/user-attachments/assets/593673d9-f38f-45c9-9c27-4ab946536368
 
 ---
 
